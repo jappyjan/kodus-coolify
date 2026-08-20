@@ -1,0 +1,332 @@
+services:
+  web:
+    image: ${KODUS_WEB_IMAGE:?Set KODUS_WEB_IMAGE}
+    restart: unless-stopped
+    environment:
+      - SERVICE_FQDN_WEB_3000
+      - NODE_ENV=production
+      - WEB_NODE_ENV=self-hosted
+      - WEB_HOSTNAME_API=${WEB_HOSTNAME_API:-localhost}
+      - WEB_PORT_API=${WEB_PORT_API:-3001}
+      - WEB_PORT=3000
+      - GLOBAL_API_CONTAINER_NAME=${GLOBAL_API_CONTAINER_NAME:-api}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:?Set NEXTAUTH_URL}
+      - WEB_NEXTAUTH_SECRET=${WEB_NEXTAUTH_SECRET}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - WEB_SUPPORT_DOCS_URL=https://docs.kodus.io
+      - WEB_SUPPORT_DISCORD_INVITE_URL=https://discord.gg/QFzwwmNmdN
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      - api
+
+  api:
+    image: ${KODUS_API_IMAGE:?Set KODUS_API_IMAGE}
+    restart: unless-stopped
+    expose:
+      - "3001"
+    environment:
+      - SERVICE_FQDN_API_3001
+      - ENV=production
+      - NODE_ENV=production
+      - API_NODE_ENV=production
+      - API_DATABASE_ENV=production
+      - API_DATABASE_DISABLE_SSL=true
+      - API_CLOUD_MODE=false
+      - API_LOG_LEVEL=${API_LOG_LEVEL:-info}
+      - API_LOG_PRETTY=false
+      - RUN_MIGRATIONS=true
+      - RUN_SEEDS=true
+      - BETA_FEATURES=false
+      - USE_LOCAL_DB=true
+      - USE_LOCAL_RABBITMQ=true
+      - GLOBAL_API_CONTAINER_NAME=${GLOBAL_API_CONTAINER_NAME:-api}
+      - API_HOST=0.0.0.0
+      - API_PORT=3001
+      - API_WEBHOOKS_PORT=3332
+      - API_URL=${API_URL:?Set API_URL}
+      - API_FRONTEND_URL=${API_FRONTEND_URL:?Set API_FRONTEND_URL}
+      - API_USER_INVITE_BASE_URL=${API_USER_INVITE_BASE_URL:?Set API_USER_INVITE_BASE_URL}
+      - API_RATE_MAX_REQUEST=100
+      - API_RATE_INTERVAL=1000
+      - API_DOCS_ENABLED=false
+      - API_PG_DB_HOST=db_postgres
+      - API_PG_DB_PORT=5432
+      - API_PG_DB_USERNAME=${API_PG_DB_USERNAME:-kodus}
+      - API_PG_DB_PASSWORD=${API_PG_DB_PASSWORD}
+      - API_PG_DB_DATABASE=${API_PG_DB_DATABASE:-kodus_db}
+      - API_MG_DB_HOST=db_mongodb
+      - API_MG_DB_PORT=27017
+      - API_MG_DB_USERNAME=${API_MG_DB_USERNAME:-kodus}
+      - API_MG_DB_PASSWORD=${API_MG_DB_PASSWORD}
+      - API_MG_DB_DATABASE=${API_MG_DB_DATABASE:-kodus}
+      - API_MG_DB_AUTH_SOURCE=admin
+      - API_RABBITMQ_ENABLED=true
+      - API_RABBITMQ_WAIT=true
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - API_RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER:-kodus}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/kodus-ai
+      - WORKER_ROLE=code-review
+      - WORKFLOW_QUEUE_WORKER_PREFETCH=20
+      - WORKFLOW_QUEUE_PUBLISHER_PREFETCH=5
+      - WORKFLOW_QUEUE_WEBHOOK_PREFETCH=20
+      - WORKFLOW_QUEUE_CODE_REVIEW_PREFETCH=20
+      - WORKFLOW_QUEUE_WEBHOOK_PROCESS_TIMEOUT_MS=600000
+      - WORKFLOW_QUEUE_CODE_REVIEW_PROCESS_TIMEOUT_MS=7200000
+      - WORKFLOW_OUTBOX_MAX_ATTEMPTS=10
+      - WORKFLOW_STALE_JOB_REAPER_CRON=0 */10 * * * *
+      - WORKFLOW_STALE_JOB_TIMEOUT_MINUTES=180
+      - API_JWT_EXPIRES_IN=365d
+      - API_JWT_REFRESH_EXPIRES_IN=7d
+      - API_JWT_SECRET=${API_JWT_SECRET}
+      - API_JWT_REFRESH_SECRET=${API_JWT_REFRESH_SECRET}
+      - API_CRYPTO_KEY=${API_CRYPTO_KEY}
+      - CODE_MANAGEMENT_SECRET=${CODE_MANAGEMENT_SECRET}
+      - CODE_MANAGEMENT_WEBHOOK_TOKEN=${CODE_MANAGEMENT_WEBHOOK_TOKEN}
+      - API_LLM_PROVIDER_MODEL=${API_LLM_PROVIDER_MODEL:-gpt-5.6-sol}
+      - API_OPEN_AI_API_KEY=${API_OPEN_AI_API_KEY}
+      - API_OPENAI_FORCE_BASE_URL=${API_OPENAI_FORCE_BASE_URL:-http://codex-lb:2455/v1}
+      - API_GITHUB_CODE_MANAGEMENT_WEBHOOK=${API_GITHUB_CODE_MANAGEMENT_WEBHOOK:?Set API_GITHUB_CODE_MANAGEMENT_WEBHOOK}
+      - SANDBOX_PROVIDER=local
+      - API_MCP_SERVER_ENABLED=true
+      - API_AGENT_REVIEW_ENABLED=true
+      - API_WORKER_DRAIN_TIMEOUT_MS=600000
+      - API_NOTIFICATION_EMAIL_PROVIDER=resend
+      - API_CRON_SYNC_CODE_REVIEW_REACTIONS=0 0 * * *
+      - API_CRON_KODY_LEARNING=0 0 * * 6
+      - API_CRON_CHECK_IF_PR_SHOULD_BE_APPROVED=*/2 * * * *
+      - API_CRON_SPEND_LIMIT_ALERT=0 * * * *
+      - API_CRON_CLASSIFY_ORPHANED_SESSIONS=0 */15 * * * *
+      - API_CRON_STALE_REVIEW_WATCHDOG=*/30 * * * *
+      - API_CRON_PRUNE_LICENSE_SEATS=0 4 * * *
+      - API_CRON_SSO_TEST_SESSION_CLEANUP=0 1 * * *
+      - KODUS_TELEMETRY_DISABLED=${KODUS_TELEMETRY_DISABLED:-false}
+    volumes:
+      - log_volume:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/health',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    depends_on:
+      db_postgres:
+        condition: service_healthy
+      db_mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker:
+    image: ${KODUS_WORKER_IMAGE:?Set KODUS_WORKER_IMAGE}
+    restart: unless-stopped
+    environment:
+      - ENV=production
+      - NODE_ENV=production
+      - API_NODE_ENV=production
+      - API_DATABASE_ENV=production
+      - API_DATABASE_DISABLE_SSL=true
+      - API_CLOUD_MODE=false
+      - API_LOG_LEVEL=${API_LOG_LEVEL:-info}
+      - API_LOG_PRETTY=false
+      - RUN_MIGRATIONS=false
+      - RUN_SEEDS=false
+      - USE_LOCAL_DB=true
+      - USE_LOCAL_RABBITMQ=true
+      - WORKER_ROLE=code-review
+      - API_HOST=0.0.0.0
+      - API_PORT=3001
+      - API_PG_DB_HOST=db_postgres
+      - API_PG_DB_PORT=5432
+      - API_PG_DB_USERNAME=${API_PG_DB_USERNAME:-kodus}
+      - API_PG_DB_PASSWORD=${API_PG_DB_PASSWORD}
+      - API_PG_DB_DATABASE=${API_PG_DB_DATABASE:-kodus_db}
+      - API_MG_DB_HOST=db_mongodb
+      - API_MG_DB_PORT=27017
+      - API_MG_DB_USERNAME=${API_MG_DB_USERNAME:-kodus}
+      - API_MG_DB_PASSWORD=${API_MG_DB_PASSWORD}
+      - API_MG_DB_DATABASE=${API_MG_DB_DATABASE:-kodus}
+      - API_MG_DB_AUTH_SOURCE=admin
+      - API_RABBITMQ_ENABLED=true
+      - API_RABBITMQ_WAIT=true
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - API_RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER:-kodus}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/kodus-ai
+      - WORKFLOW_QUEUE_WORKER_PREFETCH=20
+      - WORKFLOW_QUEUE_PUBLISHER_PREFETCH=5
+      - WORKFLOW_QUEUE_WEBHOOK_PREFETCH=20
+      - WORKFLOW_QUEUE_CODE_REVIEW_PREFETCH=20
+      - WORKFLOW_QUEUE_WEBHOOK_PROCESS_TIMEOUT_MS=600000
+      - WORKFLOW_QUEUE_CODE_REVIEW_PROCESS_TIMEOUT_MS=7200000
+      - WORKFLOW_OUTBOX_MAX_ATTEMPTS=10
+      - WORKFLOW_STALE_JOB_REAPER_CRON=0 */10 * * * *
+      - WORKFLOW_STALE_JOB_TIMEOUT_MINUTES=180
+      - API_JWT_EXPIRES_IN=365d
+      - API_JWT_REFRESH_EXPIRES_IN=7d
+      - API_JWT_SECRET=${API_JWT_SECRET}
+      - API_JWT_REFRESH_SECRET=${API_JWT_REFRESH_SECRET}
+      - API_CRYPTO_KEY=${API_CRYPTO_KEY}
+      - CODE_MANAGEMENT_SECRET=${CODE_MANAGEMENT_SECRET}
+      - CODE_MANAGEMENT_WEBHOOK_TOKEN=${CODE_MANAGEMENT_WEBHOOK_TOKEN}
+      - API_LLM_PROVIDER_MODEL=${API_LLM_PROVIDER_MODEL:-gpt-5.6-sol}
+      - API_OPEN_AI_API_KEY=${API_OPEN_AI_API_KEY}
+      - API_OPENAI_FORCE_BASE_URL=${API_OPENAI_FORCE_BASE_URL:-http://codex-lb:2455/v1}
+      - SANDBOX_PROVIDER=local
+      - API_MCP_SERVER_ENABLED=true
+      - API_AGENT_REVIEW_ENABLED=true
+      - API_WORKER_DRAIN_TIMEOUT_MS=600000
+      - KODUS_TELEMETRY_DISABLED=${KODUS_TELEMETRY_DISABLED:-false}
+    volumes:
+      - log_volume:/app/logs
+    depends_on:
+      db_postgres:
+        condition: service_healthy
+      db_mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  codex-lb:
+    image: ghcr.io/soju06/codex-lb:1.23.0
+    restart: unless-stopped
+    expose:
+      - "2455"
+      - "1455"
+    environment:
+      - CODEX_LB_DASHBOARD_AUTH_MODE=standard
+    volumes:
+      - codex-lb-data:/var/lib/codex-lb
+
+  webhooks:
+    image: ${KODUS_WEBHOOK_IMAGE:?Set KODUS_WEBHOOK_IMAGE}
+    restart: unless-stopped
+    expose:
+      - "3332"
+    environment:
+      - SERVICE_FQDN_WEBHOOKS_3332
+      - ENV=production
+      - NODE_ENV=production
+      - API_NODE_ENV=production
+      - API_DATABASE_ENV=production
+      - API_DATABASE_DISABLE_SSL=true
+      - API_CLOUD_MODE=false
+      - API_LOG_LEVEL=${API_LOG_LEVEL:-info}
+      - API_LOG_PRETTY=false
+      - RUN_MIGRATIONS=false
+      - RUN_SEEDS=false
+      - USE_LOCAL_DB=true
+      - USE_LOCAL_RABBITMQ=true
+      - API_HOST=0.0.0.0
+      - API_PORT=3001
+      - API_WEBHOOKS_PORT=3332
+      - API_PG_DB_HOST=db_postgres
+      - API_PG_DB_PORT=5432
+      - API_PG_DB_USERNAME=${API_PG_DB_USERNAME:-kodus}
+      - API_PG_DB_PASSWORD=${API_PG_DB_PASSWORD}
+      - API_PG_DB_DATABASE=${API_PG_DB_DATABASE:-kodus_db}
+      - API_MG_DB_HOST=db_mongodb
+      - API_MG_DB_PORT=27017
+      - API_MG_DB_USERNAME=${API_MG_DB_USERNAME:-kodus}
+      - API_MG_DB_PASSWORD=${API_MG_DB_PASSWORD}
+      - API_MG_DB_DATABASE=${API_MG_DB_DATABASE:-kodus}
+      - API_MG_DB_AUTH_SOURCE=admin
+      - API_RABBITMQ_ENABLED=true
+      - API_RABBITMQ_WAIT=true
+      - RABBITMQ_HOSTNAME=rabbitmq
+      - API_RABBITMQ_URI=amqp://${RABBITMQ_DEFAULT_USER:-kodus}:${RABBITMQ_DEFAULT_PASS}@rabbitmq:5672/kodus-ai
+      - API_JWT_SECRET=${API_JWT_SECRET}
+      - API_JWT_REFRESH_SECRET=${API_JWT_REFRESH_SECRET}
+      - API_CRYPTO_KEY=${API_CRYPTO_KEY}
+      - CODE_MANAGEMENT_SECRET=${CODE_MANAGEMENT_SECRET}
+      - CODE_MANAGEMENT_WEBHOOK_TOKEN=${CODE_MANAGEMENT_WEBHOOK_TOKEN}
+      - KODUS_TELEMETRY_DISABLED=${KODUS_TELEMETRY_DISABLED:-false}
+    volumes:
+      - log_volume:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3332/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    depends_on:
+      db_postgres:
+        condition: service_healthy
+      db_mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  kodus-mcp-manager:
+    image: ghcr.io/kodustech/kodus-mcp-manager:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    expose:
+      - "3101"
+    environment:
+      - NODE_ENV=production
+      - API_MCP_MANAGER_NODE_ENV=production
+      - API_PG_DB_HOST=db_postgres
+      - API_PG_DB_PORT=5432
+      - API_DATABASE_DISABLE_SSL=true
+    depends_on:
+      db_postgres:
+        condition: service_healthy
+
+  rabbitmq:
+    image: ghcr.io/kodustech/kodus-rabbitmq:4.2.2-kodus
+    restart: unless-stopped
+    hostname: rabbitmq
+    command: /usr/local/bin/init-definitions.sh
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER:-kodus}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit heartbeat 60
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  db_postgres:
+    image: docker.io/pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${API_PG_DB_USERNAME:-kodus}
+      - POSTGRES_PASSWORD=${API_PG_DB_PASSWORD}
+      - POSTGRES_DB=${API_PG_DB_DATABASE:-kodus_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${API_PG_DB_USERNAME:-kodus} -d ${API_PG_DB_DATABASE:-kodus_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  db_mongodb:
+    image: docker.io/mongo:8
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${API_MG_DB_USERNAME:-kodus}
+      - MONGO_INITDB_ROOT_PASSWORD=${API_MG_DB_PASSWORD}
+      - MONGO_INITDB_DATABASE=${API_MG_DB_DATABASE:-kodus}
+    volumes:
+      - mongodbdata:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet 'mongodb://${API_MG_DB_USERNAME:-kodus}:${API_MG_DB_PASSWORD}@localhost:27017/admin' --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+volumes:
+  codex-lb-data:
+  pgdata:
+  mongodbdata:
+  rabbitmq-data:
+  log_volume:

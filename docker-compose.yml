@@ -1,6 +1,6 @@
 services:
   web:
-    image: ${KODUS_WEB_IMAGE:?Set KODUS_WEB_IMAGE}
+    image: ghcr.io/jappyjan/kodus-ai-web:multi-team-4
     restart: unless-stopped
     environment:
       - SERVICE_FQDN_WEB_3000
@@ -25,7 +25,7 @@ services:
       - api
 
   api:
-    image: ${KODUS_API_IMAGE:?Set KODUS_API_IMAGE}
+    image: ghcr.io/jappyjan/kodus-ai-api:multi-team-3
     restart: unless-stopped
     expose:
       - "3001"
@@ -121,7 +121,7 @@ services:
         condition: service_healthy
 
   worker:
-    image: ${KODUS_WORKER_IMAGE:?Set KODUS_WORKER_IMAGE}
+    image: ghcr.io/jappyjan/kodus-ai-worker:multi-team-5
     restart: unless-stopped
     environment:
       - ENV=production
@@ -200,7 +200,7 @@ services:
       - codex-lb-data:/var/lib/codex-lb
 
   webhooks:
-    image: ${KODUS_WEBHOOK_IMAGE:?Set KODUS_WEBHOOK_IMAGE}
+    image: ghcr.io/jappyjan/kodus-ai-webhook:multi-team-3
     restart: unless-stopped
     expose:
       - "3332"

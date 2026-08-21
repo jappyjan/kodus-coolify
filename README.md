@@ -5,10 +5,6 @@ Secrets are provided via Coolify environment variables (not committed).
 
 Configure these deployment-specific values in Coolify before deploying:
 
-- `KODUS_WEB_IMAGE`
-- `KODUS_API_IMAGE`
-- `KODUS_WORKER_IMAGE`
-- `KODUS_WEBHOOK_IMAGE`
 - `NEXTAUTH_URL`
 - `API_URL`
 - `API_FRONTEND_URL`

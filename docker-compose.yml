@@ -269,6 +269,8 @@ services:
       - API_PG_DB_HOST=db_postgres
       - API_PG_DB_PORT=5432
       - API_DATABASE_DISABLE_SSL=true
+      - 'API_MCP_MANAGER_ENCRYPTION_SECRET=${API_MCP_MANAGER_ENCRYPTION_SECRET}'
+      - 'API_MCP_MANAGER_JWT_SECRET=${API_MCP_MANAGER_JWT_SECRET}'
     depends_on:
       db_postgres:
         condition: service_healthy

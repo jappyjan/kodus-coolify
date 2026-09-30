@@ -1,0 +1,39 @@
+# Review package: abf9d7ebbbba359729784fe7eabfa01eeeac6e6e..HEAD
+
+## Commits
+48f34e9 feat: expose protected Codex LB dashboard
+
+## Files changed
+ docker-compose.yml | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+## Diff
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 0291263..816cb06 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -187,20 +187,24 @@ services:
+         condition: service_healthy
+       rabbitmq:
+         condition: service_healthy
+ 
+   codex-lb:
+     image: ghcr.io/soju06/codex-lb:1.23.0
+     restart: unless-stopped
+     expose:
+       - "2455"
+       - "1455"
++    environment:
++      - SERVICE_FQDN_CODEX_LB_2455
++      - SERVICE_FQDN_CODEX_LB_1455
++      - CODEX_LB_DASHBOARD_AUTH_MODE=standard
+     volumes:
+       - codex-lb-data:/var/lib/codex-lb
+ 
+   webhooks:
+      image: ${KODUS_WEBHOOK_IMAGE}
+     restart: unless-stopped
+     expose:
+       - "3332"
+     environment:
+       - SERVICE_FQDN_WEBHOOKS_3332

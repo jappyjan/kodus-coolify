@@ -1,0 +1,39 @@
+# Review package: 48f34e9e951866c41b658011a597069de22ac9a0..HEAD
+
+## Commits
+89ab1a6 feat: add Codex LB public domains
+
+## Files changed
+ docker-compose.yml | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+## Diff
+diff --git a/docker-compose.yml b/docker-compose.yml
+index 816cb06..b76ff15 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -188,22 +188,22 @@ services:
+       rabbitmq:
+         condition: service_healthy
+ 
+   codex-lb:
+     image: ghcr.io/soju06/codex-lb:1.23.0
+     restart: unless-stopped
+     expose:
+       - "2455"
+       - "1455"
+     environment:
+-      - SERVICE_FQDN_CODEX_LB_2455
+-      - SERVICE_FQDN_CODEX_LB_1455
++      - SERVICE_FQDN_CODEX_LB_2455=<dashboard-url>
++      - SERVICE_FQDN_CODEX_LB_1455=<oauth-callback-url>
+       - CODEX_LB_DASHBOARD_AUTH_MODE=standard
+     volumes:
+       - codex-lb-data:/var/lib/codex-lb
+ 
+   webhooks:
+      image: ${KODUS_WEBHOOK_IMAGE}
+     restart: unless-stopped
+     expose:
+       - "3332"
+     environment:
